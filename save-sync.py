@@ -30,6 +30,9 @@ class SaveSync(cmd.Cmd):
 
     def do_configuration(self, args):
         ''' Show the configuration. '''
+        if (not os.path.exists(self.getConfigPath())):
+            print('You have not configured this directory.')
+            return
         configReader = configparser.ConfigParser()
         configReader.read(self.getConfigPath())
         for key in configReader['CONFIG']:

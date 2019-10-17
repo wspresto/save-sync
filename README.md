@@ -17,6 +17,7 @@ https://github.com/boto/boto3
 ## Commands
 
     -help - shows available commands. Type command name plus --help flag for more details on the command.
-    -configure - provides prompts to configure the script. Responses are stored in a .ini file in the directory where the script was executed.
+    -configuration - Display stored configuration information.
+    -configure - Provided information is stored in a .ini file in the directory where the script was executed.
     -download - download the save file from the s3 bucket
     -upload - upload the save file to the s3 bucket
