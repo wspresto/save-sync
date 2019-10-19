@@ -28,8 +28,10 @@ app.on('ready', async () => {
     }
   });
 
-  ipcMain.on('main', (e, payload) => {
-    console.log(payload); // TESTING!!!
+  ipcMain.on('config.get', (e, payload) => {
+      e.returnValue = {
+          val: 'val'
+      }
   });
 
   mainWindow.loadURL(`file://${__dirname}/build/index.html`);
