@@ -7,25 +7,26 @@ const Home: React.FC = () => {
     let getConfig = () => {
         let config = ipcRenderer.sendSync('config.get');
         console.log(config); // TESTING!!!
-    }
+    };
+
+    let getFiles = () => {
+        ipcRenderer.send('files.get');
+    };
 
     getConfig();
+
+
 
     return (
         <IonPage>
             <IonContent className="ion-padding">
                 <h1>Save Sync v1.0.0</h1>
-                {/*-- Default Input --*/}
-                <IonInput></IonInput>
+                <button onClick={getFiles}>Upload Files</button>
 
-                {/*-- Input with value --*/}
-                <IonInput value="custom"></IonInput>
 
-                {/*-- Input with placeholder --*/}
-                <IonInput placeholder="Enter Input"></IonInput>
 
-                {/*-- Input with clear button when there is a value --*/}
-                <IonInput clearInput value="clear me"></IonInput>
+
+
             </IonContent>
         </IonPage>
     );

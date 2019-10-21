@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 
 
 let mainWindow = null;
@@ -33,6 +33,13 @@ app.on('ready', async () => {
           val: 'val'
       }
   });
+
+  ipcMain.on('files.get', (e) => {
+    dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] }).then((idk) => {
+        console.log(idk); // TESTING!!!
+    });
+  });
+
 
   mainWindow.loadURL(`file://${__dirname}/build/index.html`);
 
