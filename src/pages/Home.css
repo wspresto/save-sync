@@ -1,0 +1,12 @@
+ion-fab {
+    right: 8px;
+    bottom: 8px;
+}
+
+ion-fab-button {
+    font-size: 2.5em;
+}
+
+.button-margin-fix {
+    margin-top: 32px;
+}
