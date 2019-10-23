@@ -1,14 +1,29 @@
 import { IonContent, IonInput, IonItem, IonLabel, IonHeader, IonPage, IonTitle, IonToolbar, IonCardHeader, IonCard, IonCardSubtitle, IonCardTitle, IonCardContent, IonFab, IonFabButton, IonGrid, IonRow, IonCol, IonRippleEffect, IonButton, IonList } from '@ionic/react';
 import React from 'react';
 
+import { ElectronServices } from '../services/ElectronServices';
 import './Home.css';
 
 const Home: React.FC = () => {
 
-    //TODO: inject ElectronServices 
-    //getConfig();
 
+    let list = [
+        {
+            id: 1,
+            title: 'AAA'
+        },
+        {
+            id: 2,
+            title: 'BBB'
+        }
+    ];
 
+    let model: any = {
+        secret: 'secret',
+        access: 'access',
+        token: 'token',
+        url: 'url'
+    };
 
     return (
         <IonPage>
@@ -24,13 +39,13 @@ const Home: React.FC = () => {
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">Secret Key</IonLabel>
-                                        <IonInput></IonInput>
+                                        <IonInput value={model.secret} onIonChange={(e) => {onModelChange('secret', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
                                     </IonItem>
                                 </IonCol>
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">Access Key</IonLabel>
-                                        <IonInput></IonInput>
+                                        <IonInput value={model.access} onIonChange={(e) => {onModelChange('access', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
                                     </IonItem>
                                 </IonCol>
                             </IonRow>
@@ -38,13 +53,13 @@ const Home: React.FC = () => {
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">AWS Token</IonLabel>
-                                        <IonInput></IonInput>
+                                        <IonInput value={model.token} onIonChange={(e) => {onModelChange('token', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
                                     </IonItem>
                                 </IonCol>
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">S3 Bucket URL</IonLabel>
-                                        <IonInput></IonInput>
+                                        <IonInput value={model.url} onIonChange={(e) => {onModelChange('url', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
                                     </IonItem>
                                 </IonCol>
                             </IonRow>
@@ -61,6 +76,7 @@ const Home: React.FC = () => {
                             </IonRow>
                         </IonGrid>
                     </IonCardContent>
+
                 </IonCard>
 
                 <IonFab>
@@ -68,18 +84,23 @@ const Home: React.FC = () => {
                 </IonFab>
 
                 <IonList>
-                <IonItem>
-                        <IonLabel>2019-10-22@12:23:34</IonLabel>
-                        <IonButton slot="end" color="secondary">Download</IonButton>                        
-                    </IonItem>
-                    <IonItem>
-                        <IonLabel>2019-10-22@15:23:34</IonLabel>
-                        <IonButton slot="end" color="secondary">Download</IonButton>                        
-                    </IonItem>                    
+                    {list.map(item => (
+                        <IonItem key={item.id}>
+                            <IonLabel>{item.title}</IonLabel>
+                            <IonButton slot="end" color="secondary">Download</IonButton>
+                        </IonItem>
+                    ))}
+
                 </IonList>
             </IonContent>
         </IonPage>
     );
+
+    function onModelChange(key: string, val: any) {
+        console.log(key + ':' + val); // TESTING!!!
+        model[key] = val;
+    }
+
 };
 
 export default Home;
