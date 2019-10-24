@@ -1,32 +1,56 @@
 import { IonContent, IonInput, IonItem, IonLabel, IonHeader, IonPage, IonTitle, IonToolbar, IonCardHeader, IonCard, IonCardSubtitle, IonCardTitle, IonCardContent, IonFab, IonFabButton, IonGrid, IonRow, IonCol, IonRippleEffect, IonButton, IonList } from '@ionic/react';
 import React from 'react';
 
-import { ElectronServices } from '../services/ElectronServices';
-import './Home.css';
+import { ElectronServices } from '../services/ElectronService';
+import { AwsService } from '../services/AwsService';
+ import './Home.css';
+import { tsConstructorType } from '@babel/types';
 
-const Home: React.FC = () => {
+type AwsBucketItem = {
+    id: number;
+    title: string;
+}
+type HomeState = {
+    secret: string;
+    access: string;
+    token: string;
+    url: string;
+    list: AwsBucketItem [];
+};
+class Home extends React.Component<{}, HomeState> {
 
+    constructor(props: any) {
+        super(props);
 
-    let list = [
-        {
-            id: 1,
-            title: 'AAA'
-        },
-        {
-            id: 2,
-            title: 'BBB'
-        }
-    ];
+        this.state = {
+            secret: 'secret',
+            access: 'access',
+            token: 'token',
+            url: 'url',
+            list: []
+        };
 
-    let model: any = {
-        secret: 'secret',
-        access: 'access',
-        token: 'token',
-        url: 'url'
-    };
+    }
 
-    return (
-        <IonPage>
+    componentDidMount() {
+        let awsService = new AwsService('');
+        awsService.getSaves().then((saves: any []) => {
+            this.onModelChange('list', saves);
+        });
+    }
+
+    onModelChange(key: string, val: any) {
+        // console.log(key + ':' + val); // TESTING!!!
+        let changes: any = {};
+        changes[key] = val;
+        this.setState((state) => {
+            return Object.assign(state, changes);
+        });
+    }
+
+    render () {
+        return (
+            <IonPage>
             <IonContent className="ion-padding">
                 <IonCard>
                     <IonCardHeader>
@@ -39,13 +63,13 @@ const Home: React.FC = () => {
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">Secret Key</IonLabel>
-                                        <IonInput value={model.secret} onIonChange={(e) => {onModelChange('secret', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
+                                        <IonInput value={this.state.secret} onIonChange={(e) => {this.onModelChange('secret', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
                                     </IonItem>
                                 </IonCol>
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">Access Key</IonLabel>
-                                        <IonInput value={model.access} onIonChange={(e) => {onModelChange('access', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
+                                        <IonInput value={this.state.access } onIonChange={(e) => {this.onModelChange('access', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
                                     </IonItem>
                                 </IonCol>
                             </IonRow>
@@ -53,13 +77,13 @@ const Home: React.FC = () => {
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">AWS Token</IonLabel>
-                                        <IonInput value={model.token} onIonChange={(e) => {onModelChange('token', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
+                                        <IonInput value={this.state.token} onIonChange={(e) => {this.onModelChange('token', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
                                     </IonItem>
                                 </IonCol>
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">S3 Bucket URL</IonLabel>
-                                        <IonInput value={model.url} onIonChange={(e) => {onModelChange('url', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
+                                        <IonInput value={this.state.url} onIonChange={(e) => {this.onModelChange('url', e.detail ? e.detail.value : '')}} debounce={2000}></IonInput>
                                     </IonItem>
                                 </IonCol>
                             </IonRow>
@@ -84,7 +108,7 @@ const Home: React.FC = () => {
                 </IonFab>
 
                 <IonList>
-                    {list.map(item => (
+                    {this.state.list.map(item => (
                         <IonItem key={item.id}>
                             <IonLabel>{item.title}</IonLabel>
                             <IonButton slot="end" color="secondary">Download</IonButton>
@@ -94,12 +118,12 @@ const Home: React.FC = () => {
                 </IonList>
             </IonContent>
         </IonPage>
-    );
-
-    function onModelChange(key: string, val: any) {
-        console.log(key + ':' + val); // TESTING!!!
-        model[key] = val;
+        );
     }
+       
+
+
+
 
 };
 
