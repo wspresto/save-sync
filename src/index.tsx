@@ -8,4 +8,16 @@ declare global {
     }
 }
 
+export interface ISave {
+    id?: number;
+    title: string;
+}
+
+export interface IConfig {
+    secret: string;
+    access: string;
+    token: string;
+    url: string;
+    saveDirectoryPath: string;
+}
 ReactDOM.render(<App />, document.getElementById('root'));

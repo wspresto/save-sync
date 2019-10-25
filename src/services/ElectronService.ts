@@ -1,12 +1,44 @@
-const electron = window.require('electron');
-const ipcRenderer = electron.ipcRenderer;
-export class ElectronServices {
-    getConfig() {
-        let config = ipcRenderer.sendSync('config.get');
-        console.log(config); // TESTING!!!
-    };
+import { IConfig } from '../index';
 
-    getFiles() {
-        ipcRenderer.send('files.get');
-    };
+const electron = window.require ? window.require('electron') : null;
+export class ElectronService {
+    constructor(){}
+    get ipcRenderer() {
+        if (electron) {
+            return electron.ipcRenderer;
+        } else {
+            return null
+        }
+    }
+
+    getConfig(): IConfig {
+        if (this.ipcRenderer) {
+            return this.ipcRenderer.sendSync('config.get');
+        } else {
+            return {} as any;
+        }
+    }
+    
+    setConfig(config: IConfig): IConfig {
+        if (this.ipcRenderer) {
+            return this.ipcRenderer.sendSync('config.set', config);
+        } else {
+            return {} as any;
+        }              
+    }
+
+    getDirectory(): Promise<any> {
+        if (this.ipcRenderer) {
+            return this.ipcRenderer.sendSync('directory.find');
+        } else {
+            return Promise.resolve({});
+        }        
+    }
+
+    uploadDirectory(directoryPath: string) {
+        this.ipcRenderer.sendAsync('directory.upload', {
+            directoryPath: directoryPath
+        });
+    }
+
 }
