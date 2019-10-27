@@ -52,11 +52,17 @@ class Home extends React.Component<{}, HomeState> {
     }
 
     onSetSaveDirectory(e: any) {
-        this.electronService.getDirectory().then((e: any) => {
-            console.log(e); // TESTING!!!
-            //this.onModelChange('saveDirectoryPath', )            
-            //TODO: set model
-        });
+        if (this.electronService.isNative) {
+            this.electronService.getDirectory().then((e: any) => {
+                const dirs = e.filePaths
+                if (dirs.length > 0) {
+                    this.onModelChange('saveDirectoryPath', dirs[0]);
+                }
+            });
+        } else {
+            console.error('You are not running electron services.');
+        }
+
     }
 
     onSavedToggle(isChecked: boolean) {
@@ -76,8 +82,8 @@ class Home extends React.Component<{}, HomeState> {
          
                         </IonCardSubtitle>
                         <IonItem>
+                        <IonNote slot="end">{this.state.isSaved ? 'All Changes Saved' : 'Click to Save Changes'}</IonNote>
                         <IonToggle slot="end" color="primary" checked={this.state.isSaved} onIonChange={(e) => {this.onModelChange('isSaved', e.detail.checked)}} />
-                        <IonNote slot="end">Saved</IonNote>
                     </IonItem>
                     </IonCardHeader>
                     <IonCardContent>
@@ -116,7 +122,7 @@ class Home extends React.Component<{}, HomeState> {
                                         <IonLabel position="floating">Save Directory</IonLabel>
                                         <IonInput readonly={this.state.isSaved} value={this.state.saveDirectoryPath} onIonChange={(e) => {this.onModelChange('saveDirectoryPath', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
 
-                                        <IonButton disabled={this.state.isSaved} class="button-margin-fix" slot="end" color="secondary" onClick={this.onSetSaveDirectory}>Choose Directory</IonButton>
+                                        <IonButton disabled={this.state.isSaved} class="button-margin-fix" slot="end" color="secondary" onClick={this.onSetSaveDirectory.bind(this)}>Choose Directory</IonButton>
                                     </IonItem>
                                 </IonCol>
 

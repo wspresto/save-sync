@@ -51,30 +51,33 @@ app.on('ready', async () => {
         mainWindow = null;
     });
 
-
+ 
     // Endpoints
     ipcMain.on('config.get', (e, payload) => {
-        //TODO: get config file
+        //TODO: get config file AND follow response pattern
         e.returnValue = {
             response: {}
         };
     });
 
     ipcMain.on('config.set', (e, payload) => {
-        //TODO: write config to file...
+        //TODO: write config to file...AND follow response pattern
         e.returnValue = {
             response: {}
         };
     });
 
-    ipcMain.on('directory.find', (e) => {
-        e.returnValue = {
-            response: dialog.showOpenDialog({ properties: ['openFile', 'openDirectory'] })
-        }
+    ipcMain.on('directory.find', (e, arg) => {
+        dialog.showOpenDialog({ properties: ['openFile', 'openDirectory'] }).then((dialogResponse) => {
+            console.log(dialogResponse); // TESTING!!!
+            e.reply('directory.find.response', dialogResponse);
+        });
+
     });
 
     ipcMain.on('directory.upload', (e, payload) => {
-        uploadDirectory(payload.directoryPath);
+        // uploadDirectory(payload.directoryPath); 
+        //TODO:AND follow response pattern
     });
 
 });
