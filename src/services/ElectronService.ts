@@ -2,7 +2,9 @@ import { IConfig } from '../index';
 
 import { IpcRenderer } from 'electron';
 export class ElectronService {
-    constructor(){}
+    constructor(){
+        
+    }
 
     get ipcRenderer(): IpcRenderer {
         const userAgent = navigator.userAgent.toLowerCase();
@@ -19,12 +21,14 @@ export class ElectronService {
 
     getResponseFromElectron(eventName: string, ...args: any []): Promise<any> {
         if (this.ipcRenderer) {
-            this.ipcRenderer.send(eventName, ...args);
-            return new Promise((resolve, reject) => {
-                this.ipcRenderer.on(`${eventName}.response`, (e, response) => {
+            let promise = new Promise((resolve, reject) => {
+                this.ipcRenderer.once(`${eventName}.response`, (e, response) => {
                     resolve(response);
                 });
-            })
+                this.ipcRenderer.send(eventName, ...args);
+            });
+            
+            return promise;
         } else {
             return Promise.reject({});
         }   
@@ -43,7 +47,7 @@ export class ElectronService {
     }
 
     uploadDirectory(directoryPath: string): Promise<any> {
-        return this.getResponseFromElectron('directory.upload');
+        return this.getResponseFromElectron('directory.upload', directoryPath);
     }
 
 }

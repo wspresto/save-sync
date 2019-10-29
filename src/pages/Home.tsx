@@ -4,7 +4,7 @@ import React from 'react';
 import { ElectronService } from '../services/ElectronService';
 import { AwsService } from '../services/AwsService';
 import './Home.css';
-import { ISave } from '../index';
+import { ISave, IConfig } from '../index';
 
 type HomeState = {
     secret: string;
@@ -25,22 +25,32 @@ class Home extends React.Component<{}, HomeState> {
         this.awsService = new AwsService('http://localhost');
 
         this.state = {
-            secret: 'secret',
-            access: 'access',
-            token: 'token',
-            url: 'url',
+            secret: '',
+            access: '',
+            token: '',
+            url: '',
             list: [],
-            saveDirectoryPath: '.',
-            isSaved: true
+            saveDirectoryPath: '',
+            isSaved: false
         };
-
     }
 
     componentDidMount() {
-        let awsService = new AwsService('');
-        awsService.getSaves().then((saves: any []) => {
-            this.onModelChange('list', saves);
-        });
+
+            //awsService.getSaves().then((saves: any []) => {
+                //this.onModelChange('list', saves);
+            //});
+            this.electronService.getConfig().then((config: IConfig) => {
+                console.log(config); // TESTING!!!
+                if (!config) {
+                    return;
+                }
+                this.setState((state) => {
+                    return Object.assign(state, config);
+                });
+            });
+
+
     }
 
     onModelChange(key: string, val: any) {
@@ -66,7 +76,13 @@ class Home extends React.Component<{}, HomeState> {
     }
 
     onSavedToggle(isChecked: boolean) {
-
+        this.onModelChange('isSaved', isChecked);
+        let stateClone = JSON.parse(JSON.stringify(this.state));
+        delete stateClone.list;
+        let config: IConfig = stateClone;
+        if (isChecked) {
+            this.electronService.setConfig(config);
+        }
     }
 
     render () {
@@ -83,7 +99,7 @@ class Home extends React.Component<{}, HomeState> {
                         </IonCardSubtitle>
                         <IonItem>
                         <IonNote slot="end">{this.state.isSaved ? 'All Changes Saved' : 'Click to Save Changes'}</IonNote>
-                        <IonToggle slot="end" color="primary" checked={this.state.isSaved} onIonChange={(e) => {this.onModelChange('isSaved', e.detail.checked)}} />
+                        <IonToggle slot="end" color="primary" checked={this.state.isSaved} onIonChange={(e) => {this.onSavedToggle(e.detail.checked)}} />
                     </IonItem>
                     </IonCardHeader>
                     <IonCardContent>

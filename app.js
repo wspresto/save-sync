@@ -6,7 +6,8 @@ const stream = require('stream');
 
 let mainWindow = null;
 
-
+const CONFIG_DIR = './.sync';
+const CONFIG_FILE = 'config.json'
 
 /**
  * Add event listeners...
@@ -21,6 +22,11 @@ app.on('window-all-closed', () => {
 });
 
 app.on('ready', async () => {
+
+    // Make directory for config file if not already present
+    if (!fs.existsSync(CONFIG_DIR)){
+        fs.mkdirSync(CONFIG_DIR);
+    }
 
     mainWindow = new BrowserWindow({
         show: false,
@@ -45,6 +51,7 @@ app.on('ready', async () => {
             mainWindow.show();
             mainWindow.focus();
         }
+       
     });
 
     mainWindow.on('closed', () => {
@@ -54,17 +61,44 @@ app.on('ready', async () => {
  
     // Endpoints
     ipcMain.on('config.get', (e, payload) => {
-        //TODO: get config file AND follow response pattern
-        e.returnValue = {
-            response: {}
-        };
+   
+        if (!fs.existsSync(CONFIG_DIR+'/'+CONFIG_FILE)) {
+            console.log(e); // TESTING!!!
+            e.reply('config.set.response', null);
+        } else {
+            
+            fs.readFile(CONFIG_DIR + '/' + CONFIG_FILE, {"encoding": "utf8"}, (err, data) => {
+                
+                if (!err) {
+                    let obj = {};
+                    try {
+                        obj = JSON.parse(data);
+                        console.log('Replying...')                   ; // TESTING!!!
+//                        e.reply(, obj);    
+                        mainWindow.webContents.send('config.get.response', obj); 
+
+                    } catch (e) {
+                        e.reply('config.get.response', null);
+                    }                    
+                } else {
+                    e.reply('config.get.response', null);
+                }
+            });
+        }
+
     });
 
     ipcMain.on('config.set', (e, payload) => {
-        //TODO: write config to file...AND follow response pattern
-        e.returnValue = {
-            response: {}
-        };
+
+        fs.writeFile(CONFIG_DIR + '/' + CONFIG_FILE , JSON.stringify(payload), (err, file) => {
+            if (!err) {
+                e.reply('config.set.response', payload);
+            } else {
+                e.reply('config.set.response', null);
+            }
+        });
+
+
     });
 
     ipcMain.on('directory.find', (e, arg) => {
