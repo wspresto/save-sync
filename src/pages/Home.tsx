@@ -7,13 +7,14 @@ import './Home.css';
 import { ISave, IConfig } from '../index';
 
 type HomeState = {
-    secret: string;
-    access: string;
-    token: string;
-    url: string;
+    secretAccessKey: string;
+    accessKeyId: string;
+    sessionToken: string;
+    s3BucketUrl: string;
     saveDirectoryPath: string;
     list: ISave [];
     isSaved: boolean;
+    region: string;
 };
 class Home extends React.Component<{}, HomeState> {
     electronService: ElectronService;
@@ -25,21 +26,18 @@ class Home extends React.Component<{}, HomeState> {
         this.awsService = new AwsService('http://localhost');
 
         this.state = {
-            secret: '',
-            access: '',
-            token: '',
-            url: '',
+            secretAccessKey: '',
+            accessKeyId: '',
+            sessionToken: '',
+            s3BucketUrl: '',
             list: [],
             saveDirectoryPath: '',
-            isSaved: false
+            isSaved: false,
+            region: 'us-east-1'
         };
     }
 
     componentDidMount() {
-
-            //awsService.getSaves().then((saves: any []) => {
-                //this.onModelChange('list', saves);
-            //});
             this.electronService.getConfig().then((config: IConfig) => {
                 console.log(config); // TESTING!!!
                 if (!config) {
@@ -49,8 +47,6 @@ class Home extends React.Component<{}, HomeState> {
                     return Object.assign(state, config);
                 });
             });
-
-
     }
 
     onModelChange(key: string, val: any) {
@@ -85,6 +81,19 @@ class Home extends React.Component<{}, HomeState> {
         }
     }
 
+    onUploadBtnClick() {
+        let stateClone = JSON.parse(JSON.stringify(this.state));
+        delete stateClone.list;
+        let config: IConfig = stateClone;
+        this.electronService.uploadDirectory(config).then(() => {
+            console.log('uploading not implemented'); // TESTING!!!
+        });
+    }
+
+    onDownloadClick(key: string) {
+        //TODO: download the key of the bucket item to the save location
+    }
+
     render () {
         return (
             <IonPage>
@@ -108,13 +117,13 @@ class Home extends React.Component<{}, HomeState> {
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">Secret Key</IonLabel>
-                                        <IonInput readonly={this.state.isSaved} value={this.state.secret} onIonChange={(e) => {this.onModelChange('secret', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
+                                        <IonInput readonly={this.state.isSaved} value={this.state.secretAccessKey} onIonChange={(e) => {this.onModelChange('secret', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
                                     </IonItem>
                                 </IonCol>
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">Access Key</IonLabel>
-                                        <IonInput readonly={this.state.isSaved} value={this.state.access } onIonChange={(e) => {this.onModelChange('access', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
+                                        <IonInput readonly={this.state.isSaved} value={this.state.accessKeyId } onIonChange={(e) => {this.onModelChange('access', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
                                     </IonItem>
                                 </IonCol>
                             </IonRow>
@@ -122,13 +131,13 @@ class Home extends React.Component<{}, HomeState> {
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">AWS Token</IonLabel>
-                                        <IonInput readonly={this.state.isSaved} value={this.state.token} onIonChange={(e) => {this.onModelChange('token', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
+                                        <IonInput readonly={this.state.isSaved} value={this.state.sessionToken} onIonChange={(e) => {this.onModelChange('token', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
                                     </IonItem>
                                 </IonCol>
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">S3 Bucket URL</IonLabel>
-                                        <IonInput readonly={this.state.isSaved} value={this.state.url} onIonChange={(e) => {this.onModelChange('url', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
+                                        <IonInput readonly={this.state.isSaved} value={this.state.s3BucketUrl} onIonChange={(e) => {this.onModelChange('url', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
                                     </IonItem>
                                 </IonCol>
                             </IonRow>
@@ -149,7 +158,7 @@ class Home extends React.Component<{}, HomeState> {
                 </IonCard>
 
                 <IonFab>
-                    <IonFabButton >+</IonFabButton>
+                    <IonFabButton onClick={(e) => {this.onUploadBtnClick()} }>+</IonFabButton>
                 </IonFab>
 
                 <IonList>

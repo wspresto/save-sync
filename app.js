@@ -24,7 +24,7 @@ app.on('window-all-closed', () => {
 app.on('ready', async () => {
 
     // Make directory for config file if not already present
-    if (!fs.existsSync(CONFIG_DIR)){
+    if (!fs.existsSync(CONFIG_DIR)) {
         fs.mkdirSync(CONFIG_DIR);
     }
 
@@ -51,35 +51,35 @@ app.on('ready', async () => {
             mainWindow.show();
             mainWindow.focus();
         }
-       
+
     });
 
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
 
- 
+
     // Endpoints
     ipcMain.on('config.get', (e, payload) => {
-   
-        if (!fs.existsSync(CONFIG_DIR+'/'+CONFIG_FILE)) {
+
+        if (!fs.existsSync(CONFIG_DIR + '/' + CONFIG_FILE)) {
             console.log(e); // TESTING!!!
             e.reply('config.set.response', null);
         } else {
-            
-            fs.readFile(CONFIG_DIR + '/' + CONFIG_FILE, {"encoding": "utf8"}, (err, data) => {
-                
+
+            fs.readFile(CONFIG_DIR + '/' + CONFIG_FILE, { "encoding": "utf8" }, (err, data) => {
+
                 if (!err) {
                     let obj = {};
                     try {
                         obj = JSON.parse(data);
-                        console.log('Replying...')                   ; // TESTING!!!
-//                        e.reply(, obj);    
-                        mainWindow.webContents.send('config.get.response', obj); 
+                        console.log('Replying...'); // TESTING!!!
+                        //                        e.reply(, obj);    
+                        mainWindow.webContents.send('config.get.response', obj);
 
                     } catch (e) {
                         e.reply('config.get.response', null);
-                    }                    
+                    }
                 } else {
                     e.reply('config.get.response', null);
                 }
@@ -90,7 +90,7 @@ app.on('ready', async () => {
 
     ipcMain.on('config.set', (e, payload) => {
 
-        fs.writeFile(CONFIG_DIR + '/' + CONFIG_FILE , JSON.stringify(payload), (err, file) => {
+        fs.writeFile(CONFIG_DIR + '/' + CONFIG_FILE, JSON.stringify(payload), (err, file) => {
             if (!err) {
                 e.reply('config.set.response', payload);
             } else {
@@ -110,57 +110,58 @@ app.on('ready', async () => {
     });
 
     ipcMain.on('directory.upload', (e, payload) => {
-        // uploadDirectory(payload.directoryPath); 
+
+        e.reply('directory.upload.response');
         //TODO:AND follow response pattern
+        /*     
+        
+            const pass = new stream.PassThrough();
+            const params = {Bucket: BUCKET, Key: KEY, Body: pass}; //sets up passthrough stream
+        
+            var archive = archiver('zip', {
+                zlib: { level: 9 } // Sets the compression level.
+            });
+        
+            output.on('close', function () {
+                console.log(archive.pointer() + ' total bytes');
+                console.log('archiver has been finalized and the output file descriptor has closed.');
+            });
+        
+            output.on('end', function () {
+                console.log('Data has been drained');
+            });
+        
+        
+            archive.on('warning', function (err) {
+                if (err.code === 'ENOENT') {
+                    console.error(err);
+                } else {
+                    throw err;
+                }
+            });
+        
+            archive.on('error', function (err) {
+                throw err;
+            });
+        
+            // pipe archive data to the file
+        
+            archive.pipe(s3.upload(params, function(err, data) {
+                console.log(err, data);
+            }));
+            archive.directory(directoryPath, false);
+            archive.finalize();
+             */
     });
 
 });
 
-/**
- * returns write stream
- * @param {} directoryPath 
- */
-function uploadDirectory(directoryPath) {
-    console.log(directoryPath); // TESTING!!!
-
-/*     
-    const s3 = new S3();
-    const pass = new stream.PassThrough();
-    const params = {Bucket: BUCKET, Key: KEY, Body: pass}; //sets up passthrough stream
-
-    var archive = archiver('zip', {
-        zlib: { level: 9 } // Sets the compression level.
+function getS3(config) {
+    const s3 = new AWS.S3({
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+        sessionToken: config.sessionToken
     });
 
-    output.on('close', function () {
-        console.log(archive.pointer() + ' total bytes');
-        console.log('archiver has been finalized and the output file descriptor has closed.');
-    });
-
-    output.on('end', function () {
-        console.log('Data has been drained');
-    });
-
-
-    archive.on('warning', function (err) {
-        if (err.code === 'ENOENT') {
-            console.error(err);
-        } else {
-            throw err;
-        }
-    });
-
-    archive.on('error', function (err) {
-        throw err;
-    });
-
-    // pipe archive data to the file
-
-    archive.pipe(s3.upload(params, function(err, data) {
-        console.log(err, data);
-    }));
-    archive.directory(directoryPath, false);
-    archive.finalize();
-     */
-
+    return s3;
 }

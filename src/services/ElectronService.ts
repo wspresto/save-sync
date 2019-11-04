@@ -46,8 +46,8 @@ export class ElectronService {
         return this.getResponseFromElectron('directory.find');
     }
 
-    uploadDirectory(directoryPath: string): Promise<any> {
-        return this.getResponseFromElectron('directory.upload', directoryPath);
+    uploadDirectory(config: IConfig): Promise<any> {
+        return this.getResponseFromElectron('directory.upload', config);
     }
 
 }
