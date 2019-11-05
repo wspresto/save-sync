@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const fs = require('fs');
+const path = require('path');
 const archiver = require('archiver');
+
+const AWS = require('aws-sdk');
 const S3 = require('aws-sdk/clients/s3');
 const stream = require('stream');
 
@@ -63,8 +66,7 @@ app.on('ready', async () => {
     ipcMain.on('config.get', (e, payload) => {
 
         if (!fs.existsSync(CONFIG_DIR + '/' + CONFIG_FILE)) {
-            console.log(e); // TESTING!!!
-            e.reply('config.set.response', null);
+            e.reply('config.get.response', null);
         } else {
 
             fs.readFile(CONFIG_DIR + '/' + CONFIG_FILE, { "encoding": "utf8" }, (err, data) => {
@@ -92,9 +94,9 @@ app.on('ready', async () => {
 
         fs.writeFile(CONFIG_DIR + '/' + CONFIG_FILE, JSON.stringify(payload), (err, file) => {
             if (!err) {
-                e.reply('config.set.response', payload);
+                e.reply('config.set.response', true);
             } else {
-                e.reply('config.set.response', null);
+                e.reply('config.set.response', false);
             }
         });
 
@@ -103,64 +105,127 @@ app.on('ready', async () => {
 
     ipcMain.on('directory.find', (e, arg) => {
         dialog.showOpenDialog({ properties: ['openFile', 'openDirectory'] }).then((dialogResponse) => {
-            console.log(dialogResponse); // TESTING!!!
             e.reply('directory.find.response', dialogResponse);
         });
 
     });
 
-    ipcMain.on('directory.upload', (e, payload) => {
 
-        e.reply('directory.upload.response');
-        //TODO:AND follow response pattern
-        /*     
+    ipcMain.on('bucket.list', (e, payload) => {
+        const accessKeyId = payload.accessKeyId;
+        const secretAccessKey = payload.secretAccessKey;
+        const region = payload.region;
+        const bucket = payload.s3BucketName;
+        const bucketOptions = { Bucket: bucket }
+
+        const s3 = getS3(accessKeyId, secretAccessKey, region);
+
+        s3.listObjects(bucketOptions, (err, data) => {
+            if (err) {
+                e.reply('bucket.list.response', []);
+            } else {
+                e.reply('bucket.list.response', data.Contents);
+            }
+        });
+    });
+
+
+    ipcMain.on('directory.download', (e, payload) => {
+        const accessKeyId = payload.accessKeyId;
+        const secretAccessKey = payload.secretAccessKey;
+        const region = payload.region;
+        const key = payload.key;
+        const bucket = payload.s3BucketName;
+        const dir = payload.saveDirectoryPath;
+
+        const bucketOptions = { Bucket: bucket };
+
+        const s3 = getS3(accessKeyId, secretAccessKey, region);
+
+        let out = fs.createWriteStream(path.join(dir, key));
+        var s3Stream = s3.getObject({ Bucket: 'myBucket', Key: key }).createReadStream();
+
+        // Listen for errors returned by the service
+        s3Stream.on('error', function (err) {
+            e.reply('directory.download.response', false);
+            console.error(err);
+        });
+
+        s3Stream.pipe(out).on('error', function (err) {
+            // capture any errors that occur when writing data to the file
+            e.reply('directory.download.response', false);
+
+            console.error('File Stream:', err);
+        }).on('close', function () {
+            e.reply('directory.download.response', true);
+            console.log('Done.');
+        });
+
+
+    });
+
+    ipcMain.on('directory.upload', (e, payload) => {
+        const accessKeyId = payload.accessKeyId;
+        const secretAccessKey = payload.secretAccessKey;
+        const region = payload.region;
+        const key = "" + (new Date());
+        const bucket = payload.s3BucketName;
+        const dir = payload.saveDirectoryPath;
+
         
-            const pass = new stream.PassThrough();
-            const params = {Bucket: BUCKET, Key: KEY, Body: pass}; //sets up passthrough stream
-        
-            var archive = archiver('zip', {
-                zlib: { level: 9 } // Sets the compression level.
-            });
-        
-            output.on('close', function () {
-                console.log(archive.pointer() + ' total bytes');
-                console.log('archiver has been finalized and the output file descriptor has closed.');
-            });
-        
-            output.on('end', function () {
-                console.log('Data has been drained');
-            });
-        
-        
-            archive.on('warning', function (err) {
-                if (err.code === 'ENOENT') {
-                    console.error(err);
-                } else {
-                    throw err;
-                }
-            });
-        
-            archive.on('error', function (err) {
+
+        const s3 = getS3(accessKeyId, secretAccessKey, region);
+        const pass = new stream.PassThrough();
+        const bucketOptions = { Bucket: bucket, Body: pass, Key: key };
+        var archive = archiver('zip', {
+            zlib: { level: 9 } // Sets the compression level.
+        });
+
+        pass.on('close', function () {
+            console.log(archive.pointer() + ' total bytes');
+            console.log('archiver has been finalized and the output file descriptor has closed.');
+        });
+
+        pass.on('end', function () {
+            console.log('Data has been drained');
+
+        });
+
+
+        archive.on('warning', function (err) {
+            if (err.code === 'ENOENT') {
+                console.error(err);
+            } else {
                 throw err;
-            });
-        
-            // pipe archive data to the file
-        
-            archive.pipe(s3.upload(params, function(err, data) {
-                console.log(err, data);
-            }));
-            archive.directory(directoryPath, false);
-            archive.finalize();
-             */
+            }
+        });
+
+        archive.on('error', function (err) {
+            e.reply('directory.upload.response', false);
+        });
+
+        // pipe archive data to the file
+
+        archive.pipe(s3.upload(bucketOptions, (err, data) => {
+            console.log(err, data);
+            if (err) {
+                e.reply('directory.upload.response', false);
+            } else {
+                e.reply('directory.upload.response', true);
+            }
+        }));
+        archive.directory(directoryPath, false);
+        archive.finalize();
+
     });
 
 });
 
-function getS3(config) {
+function getS3(accessKeyId, secretAccessKey, region) {
     const s3 = new AWS.S3({
-        accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey,
-        sessionToken: config.sessionToken
+        accessKeyId: accessKeyId,
+        secretAccessKey: secretAccessKey,
+        region: region
     });
 
     return s3;

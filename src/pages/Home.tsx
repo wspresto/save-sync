@@ -1,60 +1,88 @@
-import { IonContent, IonInput, IonItem, IonLabel, IonHeader, IonPage, IonTitle, IonToolbar, IonCardHeader, IonCard, IonCardSubtitle, IonCardTitle, IonCardContent, IonFab, IonFabButton, IonGrid, IonRow, IonCol, IonRippleEffect, IonButton, IonList, IonToggle, IonNote } from '@ionic/react';
+import { IonContent, IonInput, IonItem, IonLabel, IonHeader, IonPage, IonTitle, IonToolbar, IonCardHeader, IonCard, IonCardSubtitle, IonCardTitle, IonCardContent, IonFab, IonFabButton, IonGrid, IonRow, IonCol, IonRippleEffect, IonButton, IonList, IonToggle, IonNote, IonToast } from '@ionic/react';
 import React from 'react';
 
 import { ElectronService } from '../services/ElectronService';
-import { AwsService } from '../services/AwsService';
+
 import './Home.css';
-import { ISave, IConfig } from '../index';
+import { IConfig, IBucketObject } from '../index';
 
 type HomeState = {
     secretAccessKey: string;
     accessKeyId: string;
-    sessionToken: string;
-    s3BucketUrl: string;
+    s3BucketName: string;
     saveDirectoryPath: string;
-    list: ISave [];
+    list: IBucketObject [];
     isSaved: boolean;
     region: string;
+    toastMsg: string;
+    showToast: boolean;
 };
 class Home extends React.Component<{}, HomeState> {
     electronService: ElectronService;
-    awsService: AwsService;
+
+
+    get config(): IConfig {
+        const copy: any = JSON.parse(JSON.stringify(this.state));
+        delete copy.list;
+        delete copy.isSaved;
+        delete copy.showToast;
+        delete copy.toastMsg;
+        return copy;
+
+    }
 
     constructor(props: any) {
         super(props);
         this.electronService = new ElectronService();
-        this.awsService = new AwsService('http://localhost');
 
         this.state = {
             secretAccessKey: '',
             accessKeyId: '',
-            sessionToken: '',
-            s3BucketUrl: '',
+            s3BucketName: '',
             list: [],
             saveDirectoryPath: '',
-            isSaved: false,
-            region: 'us-east-1'
+            isSaved: true,
+            region: 'us-east-1',
+            showToast: false,
+            toastMsg: 'Initialized.'
         };
     }
 
     componentDidMount() {
             this.electronService.getConfig().then((config: IConfig) => {
-                console.log(config); // TESTING!!!
                 if (!config) {
+                    this.onModelChange('isSaved', false);
                     return;
+                } else {
+                    this.setState((state) => {
+                        return Object.assign(state, config);
+                    });
+                    this.fetchBucketList();
                 }
-                this.setState((state) => {
-                    return Object.assign(state, config);
-                });
             });
     }
-
-    onModelChange(key: string, val: any) {
+    fetchBucketList() {
+        this.electronService.listBucket(this.config).then((data: any) => {
+            this.onModelChange('list', data);
+        }, (err) => {
+            console.error(err); // TESTING!!!
+        });        
+    }
+    /**
+     * returns true if value was different from existing value of model
+     * @param key 
+     * @param val 
+     */
+    onModelChange(key: string, val: any): boolean {
         let changes: any = {};
+        const previous = changes[key];
         changes[key] = val;
+        
         this.setState((state) => {
             return Object.assign(state, changes);
         });
+
+        return previous != val;
     }
 
     onSetSaveDirectory(e: any) {
@@ -72,26 +100,43 @@ class Home extends React.Component<{}, HomeState> {
     }
 
     onSavedToggle(isChecked: boolean) {
-        this.onModelChange('isSaved', isChecked);
-        let stateClone = JSON.parse(JSON.stringify(this.state));
-        delete stateClone.list;
-        let config: IConfig = stateClone;
+        this.onModelChange('isSaved', isChecked)
         if (isChecked) {
-            this.electronService.setConfig(config);
+            this.electronService.setConfig(this.config).then((success) => {
+                if (success) {
+                    this.showToast('Configuration Saved!');
+                } else {
+                    this.showToast('There was an Error...');
+                }
+            });
         }
     }
 
     onUploadBtnClick() {
-        let stateClone = JSON.parse(JSON.stringify(this.state));
-        delete stateClone.list;
-        let config: IConfig = stateClone;
-        this.electronService.uploadDirectory(config).then(() => {
-            console.log('uploading not implemented'); // TESTING!!!
+        this.electronService.uploadDirectory(this.config).then((success: boolean) => {
+            if (success) {
+                this.fetchBucketList();
+                this.showToast('Upload Complete!');
+            } else {
+                this.showToast('There was an Error...');
+            }
         });
     }
 
     onDownloadClick(key: string) {
-        //TODO: download the key of the bucket item to the save location
+        this.electronService.downloadDirectory(this.config, key).then((success: boolean) => {
+            if (success) {
+                this.showToast('Download Complete!');
+            } else {
+                this.showToast('There was an Error...');
+            }
+        });
+    }
+
+    showToast(msg: string) {
+        this.onModelChange('toastMsg', msg);
+        this.onModelChange('showToast', true);
+
     }
 
     render () {
@@ -108,7 +153,7 @@ class Home extends React.Component<{}, HomeState> {
                         </IonCardSubtitle>
                         <IonItem>
                         <IonNote slot="end">{this.state.isSaved ? 'All Changes Saved' : 'Click to Save Changes'}</IonNote>
-                        <IonToggle slot="end" color="primary" checked={this.state.isSaved} onIonChange={(e) => {this.onSavedToggle(e.detail.checked)}} />
+                        <IonToggle slot="end" color="primary" checked={this.state.isSaved} onIonChange={(e) => {this.onSavedToggle(e.detail.checked);}} />
                     </IonItem>
                     </IonCardHeader>
                     <IonCardContent>
@@ -117,27 +162,21 @@ class Home extends React.Component<{}, HomeState> {
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">Secret Key</IonLabel>
-                                        <IonInput readonly={this.state.isSaved} value={this.state.secretAccessKey} onIonChange={(e) => {this.onModelChange('secret', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
+                                        <IonInput readonly={this.state.isSaved} value={this.state.secretAccessKey} onIonChange={(e) => {this.onModelChange('secretAccessKey', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
                                     </IonItem>
                                 </IonCol>
                                 <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">Access Key</IonLabel>
-                                        <IonInput readonly={this.state.isSaved} value={this.state.accessKeyId } onIonChange={(e) => {this.onModelChange('access', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
+                                        <IonInput readonly={this.state.isSaved} value={this.state.accessKeyId } onIonChange={(e) => {this.onModelChange('accessKeyId', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
                                     </IonItem>
                                 </IonCol>
                             </IonRow>
                             <IonRow>
                                 <IonCol>
                                     <IonItem>
-                                        <IonLabel position="floating">AWS Token</IonLabel>
-                                        <IonInput readonly={this.state.isSaved} value={this.state.sessionToken} onIonChange={(e) => {this.onModelChange('token', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
-                                    </IonItem>
-                                </IonCol>
-                                <IonCol>
-                                    <IonItem>
-                                        <IonLabel position="floating">S3 Bucket URL</IonLabel>
-                                        <IonInput readonly={this.state.isSaved} value={this.state.s3BucketUrl} onIonChange={(e) => {this.onModelChange('url', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
+                                        <IonLabel position="floating">S3 Bucket Name</IonLabel>
+                                        <IonInput readonly={this.state.isSaved} value={this.state.s3BucketName} onIonChange={(e) => {this.onModelChange('s3BucketName', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
                                     </IonItem>
                                 </IonCol>
                             </IonRow>
@@ -154,31 +193,37 @@ class Home extends React.Component<{}, HomeState> {
                             </IonRow>
                         </IonGrid>
                     </IonCardContent>
-
                 </IonCard>
 
                 <IonFab>
-                    <IonFabButton onClick={(e) => {this.onUploadBtnClick()} }>+</IonFabButton>
+                    <IonFabButton onClick={(e) => {this.onUploadBtnClick()} } >
+                        <div className="save-icon"></div>
+                    </IonFabButton>
                 </IonFab>
 
                 <IonList>
                     {this.state.list.map(item => (
-                        <IonItem key={item.id}>
-                            <IonLabel>{item.title}</IonLabel>
-                            <IonButton slot="end" color="secondary">Download</IonButton>
+                        <IonItem key={item.Key}>
+                            <IonLabel>{item.Key}</IonLabel>
+                            <IonButton onClick={(e) => {this.onDownloadClick(item.Key)}} slot="end" color="secondary">Download</IonButton>
                         </IonItem>
-                    ))}
 
+                    ))}
                 </IonList>
+
+                <IonToast
+                    animated
+                    position="bottom"
+                    onDidDismiss={() => this.onModelChange('showToast', false)}
+                    isOpen={this.state.showToast}
+                    message={this.state.toastMsg}
+                    duration={5000}
+                />
             </IonContent>
         </IonPage>
         );
     }
        
-
-
-
-
 };
 
 export default Home;

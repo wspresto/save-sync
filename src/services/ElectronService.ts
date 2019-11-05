@@ -50,4 +50,12 @@ export class ElectronService {
         return this.getResponseFromElectron('directory.upload', config);
     }
 
+    downloadDirectory(config: IConfig, key: string): Promise<any> {
+        return this.getResponseFromElectron('directory.download', Object.assign({key: key}, config));
+    }
+
+    listBucket(config: IConfig): Promise<any> {
+        return this.getResponseFromElectron('bucket.list', config);
+    }
+
 }
