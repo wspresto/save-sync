@@ -1,10 +1,9 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver');
+const tar = require('tar');
 
 const AWS = require('aws-sdk');
-const S3 = require('aws-sdk/clients/s3');
 const stream = require('stream');
 
 let mainWindow = null;
@@ -31,10 +30,11 @@ app.on('ready', async () => {
         fs.mkdirSync(CONFIG_DIR);
     }
 
+
     mainWindow = new BrowserWindow({
         show: false,
         width: 1024,
-        height: 728,
+        height: 1024,
         webPreferences: {
             nodeIntegration: true
         }
@@ -75,10 +75,8 @@ app.on('ready', async () => {
                     let obj = {};
                     try {
                         obj = JSON.parse(data);
-                        console.log('Replying...'); // TESTING!!!
-                        //                        e.reply(, obj);    
+                        console.log(obj);
                         mainWindow.webContents.send('config.get.response', obj);
-
                     } catch (e) {
                         e.reply('config.get.response', null);
                     }
@@ -136,14 +134,22 @@ app.on('ready', async () => {
         const region = payload.region;
         const key = payload.key;
         const bucket = payload.s3BucketName;
-        const dir = payload.saveDirectoryPath;
-
-        const bucketOptions = { Bucket: bucket };
+        const directoryPath = payload.saveDirectoryPath;
 
         const s3 = getS3(accessKeyId, secretAccessKey, region);
 
-        let out = fs.createWriteStream(path.join(dir, key));
-        var s3Stream = s3.getObject({ Bucket: 'myBucket', Key: key }).createReadStream();
+        let out = tar.x(
+            {
+                gzip: true,
+                cwd: directoryPath,
+                keep: false
+            }
+        );
+
+        out.on('error', () => {
+            e.reply('directory.download.response', false);
+        });
+        var s3Stream = s3.getObject({ Bucket: bucket, Key: key }).createReadStream();
 
         // Listen for errors returned by the service
         s3Stream.on('error', function (err) {
@@ -168,45 +174,39 @@ app.on('ready', async () => {
         const accessKeyId = payload.accessKeyId;
         const secretAccessKey = payload.secretAccessKey;
         const region = payload.region;
-        const key = "" + (new Date());
+        const key = '' + (new Date()) + '.tar.gz';
         const bucket = payload.s3BucketName;
         const directoryPath = payload.saveDirectoryPath;
 
-        
-
         const s3 = getS3(accessKeyId, secretAccessKey, region);
+
         const pass = new stream.PassThrough();
         const bucketOptions = { Bucket: bucket, Body: pass, Key: key };
-        var archive = archiver('zip', {
-            zlib: { level: 9 } // Sets the compression level.
-        });
 
         pass.on('close', function () {
             console.log(archive.pointer() + ' total bytes');
-            console.log('archiver has been finalized and the output file descriptor has closed.');
         });
 
-        pass.on('end', function () {
-            console.log('Data has been drained');
-
-        });
-
-
-        archive.on('warning', function (err) {
-            if (err.code === 'ENOENT') {
-                console.error(err);
-            } else {
-                throw err;
-            }
-        });
-
-        archive.on('error', function (err) {
+        pass.on('error', (err) => {
             e.reply('directory.upload.response', false);
         });
 
-        // pipe archive data to the file
+        pass.on('end', function () {
+            console.log('Upload complete.');
+        });
 
-        archive.pipe(pass);
+        let tarStream = tar.c(
+            {
+                gzip: true,
+                cwd: directoryPath
+            }, ['.']);
+            
+        tarStream.on('error', () => {
+            e.reply('directory.upload.response', false);
+        });
+        
+        tarStream.pipe(pass);
+
         s3.upload(bucketOptions, (err, data) => {
             console.log(err, data);
             if (err) {
@@ -215,19 +215,25 @@ app.on('ready', async () => {
                 e.reply('directory.upload.response', true);
             }
         });
-        archive.directory(directoryPath, false);
-        archive.finalize();
+
+
+
+
 
     });
 
 });
 
 function getS3(accessKeyId, secretAccessKey, region) {
-    const s3 = new AWS.S3({
+    AWS.config.update({
         accessKeyId: accessKeyId,
         secretAccessKey: secretAccessKey,
         region: region
     });
 
-    return s3;
+
+
+    return new AWS.S3();
 }
+
+

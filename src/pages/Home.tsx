@@ -62,7 +62,8 @@ class Home extends React.Component<{}, HomeState> {
             });
     }
     fetchBucketList() {
-        this.electronService.listBucket(this.config).then((data: any) => {
+        this.electronService.listBucket(this.config).then((data: any []) => {
+            data.reverse();
             this.onModelChange('list', data);
         }, (err) => {
             console.error(err); // TESTING!!!
@@ -100,8 +101,9 @@ class Home extends React.Component<{}, HomeState> {
     }
 
     onSavedToggle(isChecked: boolean) {
-        this.onModelChange('isSaved', isChecked)
+        this.onModelChange('isSaved', isChecked);
         if (isChecked) {
+            this.fetchBucketList();
             this.electronService.setConfig(this.config).then((success) => {
                 if (success) {
                     this.showToast('Configuration Saved!');
@@ -201,7 +203,9 @@ class Home extends React.Component<{}, HomeState> {
                     </IonFabButton>
                 </IonFab>
 
-                <IonList>
+                <h2>Synced Saves</h2>
+                <p><em>Previously Synced Save directories will appear here.</em></p>
+                <IonList className="list">
                     {this.state.list.map(item => (
                         <IonItem key={item.Key}>
                             <IonLabel>{item.Key}</IonLabel>
