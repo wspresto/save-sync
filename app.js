@@ -170,7 +170,7 @@ app.on('ready', async () => {
         const region = payload.region;
         const key = "" + (new Date());
         const bucket = payload.s3BucketName;
-        const dir = payload.saveDirectoryPath;
+        const directoryPath = payload.saveDirectoryPath;
 
         
 
@@ -206,14 +206,15 @@ app.on('ready', async () => {
 
         // pipe archive data to the file
 
-        archive.pipe(s3.upload(bucketOptions, (err, data) => {
+        archive.pipe(pass);
+        s3.upload(bucketOptions, (err, data) => {
             console.log(err, data);
             if (err) {
                 e.reply('directory.upload.response', false);
             } else {
                 e.reply('directory.upload.response', true);
             }
-        }));
+        });
         archive.directory(directoryPath, false);
         archive.finalize();
 
