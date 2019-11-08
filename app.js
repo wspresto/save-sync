@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
+
 const tar = require('tar');
 
 const AWS = require('aws-sdk');
@@ -10,6 +11,7 @@ let mainWindow = null;
 
 const CONFIG_DIR = './.sync';
 const CONFIG_FILE = 'config.json'
+
 
 /**
  * Add event listeners...
@@ -195,10 +197,15 @@ app.on('ready', async () => {
             console.log('Upload complete.');
         });
 
+        
         let tarStream = tar.c(
-            {
+            {                
                 gzip: true,
-                cwd: directoryPath
+                cwd: directoryPath,
+                filter: (fpath, stat) => {
+                    console.log(fpath);
+                    return fpath == '.' || fs.lstatSync(path.join(directoryPath,fpath)).isFile();
+                }
             }, ['.']);
             
         tarStream.on('error', () => {
