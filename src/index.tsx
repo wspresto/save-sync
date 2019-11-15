@@ -22,10 +22,10 @@ export interface IBucketObject {
 }
 
 export interface IConfig {
-    secret: string;
-    access: string;
-    token: string;
-    url: string;
+    userName: string;
+    secretAccessKey: string;
+    accessKeyId: string;
+    s3BucketName: string;
     saveDirectoryPath: string;
 }
 ReactDOM.render(<App />, document.getElementById('root'));

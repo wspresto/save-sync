@@ -7,10 +7,12 @@ import './Home.css';
 import { IConfig, IBucketObject } from '../index';
 
 type HomeState = {
+    userName: string;
     secretAccessKey: string;
     accessKeyId: string;
     s3BucketName: string;
     saveDirectoryPath: string;
+
     list: IBucketObject [];
     isSaved: boolean;
     region: string;
@@ -36,6 +38,7 @@ class Home extends React.Component<{}, HomeState> {
         this.electronService = new ElectronService();
 
         this.state = {
+            userName: '',
             secretAccessKey: '',
             accessKeyId: '',
             s3BucketName: '',
@@ -175,12 +178,19 @@ class Home extends React.Component<{}, HomeState> {
                                 </IonCol>
                             </IonRow>
                             <IonRow>
-                                <IonCol>
+                            <IonCol>
                                     <IonItem>
                                         <IonLabel position="floating">S3 Bucket Name</IonLabel>
                                         <IonInput readonly={this.state.isSaved} value={this.state.s3BucketName} onIonChange={(e) => {this.onModelChange('s3BucketName', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
                                     </IonItem>
                                 </IonCol>
+
+                                <IonCol>
+                                    <IonItem>
+                                        <IonLabel position="floating">User Name</IonLabel>
+                                        <IonInput readonly={this.state.isSaved} value={this.state.userName} onIonChange={(e) => {this.onModelChange('userName', e.detail ? e.detail.value : '')}} debounce={250}></IonInput>
+                                    </IonItem>
+                                </IonCol>                                
                             </IonRow>
                             <IonRow>
                                 <IonCol>

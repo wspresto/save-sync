@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
-
+const moment = require('moment');
 const tar = require('tar');
 
 const AWS = require('aws-sdk');
@@ -173,10 +173,11 @@ app.on('ready', async () => {
     });
 
     ipcMain.on('directory.upload', (e, payload) => {
+        const userName = payload.userName;
         const accessKeyId = payload.accessKeyId;
         const secretAccessKey = payload.secretAccessKey;
         const region = payload.region;
-        const key = '' + (new Date()) + '.tar.gz';
+        const key = moment().utc().format() + '@' + userName;
         const bucket = payload.s3BucketName;
         const directoryPath = payload.saveDirectoryPath;
 
